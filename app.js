@@ -18,6 +18,7 @@ class VolunteerTracker {
         this.setupEventListeners();
         this.setDefaultDate();
         this.render();
+        this.initializeReporting();
     }
 
     /**
@@ -123,6 +124,7 @@ class VolunteerTracker {
         const entry = {
             id: this.currentEditId || Date.now().toString(),
             date: formData.get('date'),
+            volunteer: formData.get('volunteer')?.trim() || 'Me',
             organization: formData.get('organization').trim(),
             activity: formData.get('activity').trim(),
             hours: parseFloat(formData.get('hours')),
@@ -175,6 +177,7 @@ class VolunteerTracker {
 
         // Fill form with entry data
         document.getElementById('entry-date').value = entry.date;
+        document.getElementById('volunteer').value = entry.volunteer || 'Me';
         document.getElementById('organization').value = entry.organization;
         document.getElementById('activity').value = entry.activity;
         document.getElementById('hours').value = entry.hours;
@@ -564,6 +567,233 @@ class VolunteerTracker {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    /**
+     * Initialize reporting functionality
+     */
+    initializeReporting() {
+        this.reportGenerator = new ReportGenerator(this.entries);
+
+        // Date range type change handler
+        const dateRangeType = document.getElementById('date-range-type');
+        dateRangeType.addEventListener('change', () => this.handleDateRangeTypeChange());
+
+        // Preview button
+        document.getElementById('preview-report-btn').addEventListener('click', () => this.previewReport());
+
+        // Generate button
+        document.getElementById('generate-report-btn').addEventListener('click', () => this.generateReport());
+
+        // Initialize report filters
+        this.updateReportFilters();
+    }
+
+    /**
+     * Handle date range type changes
+     */
+    handleDateRangeTypeChange() {
+        const rangeType = document.getElementById('date-range-type').value;
+        const lastOptions = document.getElementById('last-period-options');
+        const customOptions = document.getElementById('custom-range-options');
+
+        lastOptions.style.display = rangeType === 'last' ? 'block' : 'none';
+        customOptions.style.display = rangeType === 'custom' ? 'block' : 'none';
+
+        // Set default dates for custom range
+        if (rangeType === 'custom') {
+            const today = new Date().toISOString().split('T')[0];
+            const monthAgo = new Date();
+            monthAgo.setMonth(monthAgo.getMonth() - 1);
+            const monthAgoStr = monthAgo.toISOString().split('T')[0];
+
+            if (!document.getElementById('start-date').value) {
+                document.getElementById('start-date').value = monthAgoStr;
+            }
+            if (!document.getElementById('end-date').value) {
+                document.getElementById('end-date').value = today;
+            }
+        }
+    }
+
+    /**
+     * Update report filter dropdowns
+     */
+    updateReportFilters() {
+        // Volunteer filter
+        const volunteers = [...new Set(this.entries.map(e => e.volunteer || 'Me'))].sort();
+        const volunteerFilter = document.getElementById('report-volunteer-filter');
+        volunteerFilter.innerHTML = '<option value="all">All Volunteers</option>' +
+            volunteers.map(vol => `<option value="${this.escapeHtml(vol)}">${this.escapeHtml(vol)}</option>`).join('');
+
+        // Organization filter
+        const organizations = [...new Set(this.entries.map(e => e.organization))].sort();
+        const orgFilter = document.getElementById('report-org-filter');
+        orgFilter.innerHTML = '<option value="all">All Organizations</option>' +
+            organizations.map(org => `<option value="${this.escapeHtml(org)}">${this.escapeHtml(org)}</option>`).join('');
+
+        // Category filter
+        const categories = [...new Set(this.entries.map(e => e.category).filter(c => c))].sort();
+        const categoryFilter = document.getElementById('report-category-filter');
+        categoryFilter.innerHTML = '<option value="all">All Categories</option>' +
+            categories.map(cat => `<option value="${this.escapeHtml(cat)}">${this.escapeHtml(cat)}</option>`).join('');
+    }
+
+    /**
+     * Get current report filters from UI
+     */
+    getReportFilters() {
+        const filters = {};
+
+        // Date range
+        const rangeType = document.getElementById('date-range-type').value;
+        filters.dateRange = { type: rangeType, options: {} };
+
+        if (rangeType === 'last') {
+            filters.dateRange.options.value = document.getElementById('last-value').value;
+            filters.dateRange.options.unit = document.getElementById('last-unit').value;
+        } else if (rangeType === 'custom') {
+            filters.dateRange.options.startDate = document.getElementById('start-date').value;
+            filters.dateRange.options.endDate = document.getElementById('end-date').value;
+        }
+
+        // Volunteer
+        const volunteer = document.getElementById('report-volunteer-filter').value;
+        if (volunteer && volunteer !== 'all') {
+            filters.volunteer = volunteer;
+        }
+
+        // Organization
+        const org = document.getElementById('report-org-filter').value;
+        if (org && org !== 'all') {
+            filters.organization = org;
+        }
+
+        // Category
+        const category = document.getElementById('report-category-filter').value;
+        if (category && category !== 'all') {
+            filters.category = category;
+        }
+
+        // Activity search
+        const activity = document.getElementById('report-activity-filter').value.trim();
+        if (activity) {
+            filters.activity = activity;
+        }
+
+        return filters;
+    }
+
+    /**
+     * Preview report with current filters
+     */
+    previewReport() {
+        if (this.entries.length === 0) {
+            this.showToast('No entries to preview', 'error');
+            return;
+        }
+
+        // Update report generator data
+        this.reportGenerator.setEntries(this.entries);
+
+        const filters = this.getReportFilters();
+        const filtered = this.reportGenerator.filterEntries(filters);
+        const stats = this.reportGenerator.calculateStats(filtered);
+
+        const previewContainer = document.getElementById('report-preview');
+
+        if (filtered.length === 0) {
+            previewContainer.innerHTML = '<p class="empty-state">No entries match the selected filters</p>';
+            return;
+        }
+
+        let html = '<div class="preview-stats">';
+        html += `
+            <div class="preview-stat">
+                <div class="preview-stat-label">Total Hours</div>
+                <div class="preview-stat-value">${stats.totalHours}</div>
+            </div>
+            <div class="preview-stat">
+                <div class="preview-stat-label">Entries</div>
+                <div class="preview-stat-value">${stats.totalEntries}</div>
+            </div>
+            <div class="preview-stat">
+                <div class="preview-stat-label">Organizations</div>
+                <div class="preview-stat-value">${stats.organizations}</div>
+            </div>
+            <div class="preview-stat">
+                <div class="preview-stat-label">Average Hours</div>
+                <div class="preview-stat-value">${stats.averageHours}</div>
+            </div>
+        `;
+        html += '</div>';
+
+        if (stats.dateRange.earliest) {
+            html += `<p><strong>Date Range:</strong> ${stats.dateRange.earliest} to ${stats.dateRange.latest}</p>`;
+        }
+
+        html += '<div class="preview-entries">';
+        html += '<h4>Matching Entries (showing first 10)</h4>';
+        filtered.slice(0, 10).forEach(entry => {
+            html += `
+                <div class="preview-entry">
+                    <div class="preview-entry-header">
+                        <span class="preview-entry-org">${this.escapeHtml(entry.organization)}</span>
+                        <span class="preview-entry-hours">${entry.hours}h</span>
+                    </div>
+                    <div class="preview-entry-activity">${this.escapeHtml(entry.activity)}</div>
+                    <div class="preview-entry-date">${this.formatDate(entry.date)}</div>
+                </div>
+            `;
+        });
+        html += '</div>';
+
+        if (filtered.length > 10) {
+            html += `<p style="margin-top: 1rem; color: #666; text-align: center;">... and ${filtered.length - 10} more entries</p>`;
+        }
+
+        previewContainer.innerHTML = html;
+        this.showToast(`Preview: ${filtered.length} entries found`, 'success');
+    }
+
+    /**
+     * Generate and download report
+     */
+    generateReport() {
+        if (this.entries.length === 0) {
+            this.showToast('No entries to export', 'error');
+            return;
+        }
+
+        // Update report generator data
+        this.reportGenerator.setEntries(this.entries);
+
+        const filters = this.getReportFilters();
+        const format = document.querySelector('input[name="format"]:checked').value;
+
+        const filtered = this.reportGenerator.filterEntries(filters);
+        if (filtered.length === 0) {
+            this.showToast('No entries match the selected filters', 'error');
+            return;
+        }
+
+        const report = this.reportGenerator.generateReport(filters, format);
+        this.reportGenerator.downloadReport(report.content, report.filename, report.mimeType);
+
+        this.showToast(`Report generated: ${filtered.length} entries`, 'success');
+    }
+
+    /**
+     * Override render to also update report filters
+     */
+    render() {
+        this.renderDashboard();
+        this.renderEntriesList();
+        this.updateFilters();
+        this.updateOrgSuggestions();
+        if (this.reportGenerator) {
+            this.updateReportFilters();
+        }
     }
 }
 
