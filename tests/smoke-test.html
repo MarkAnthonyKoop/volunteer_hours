@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smoke Test - Volunteer Tracker</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        .test-item {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .test-item.pass {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        .test-item.fail {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        .test-item.pending {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+        .icon {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .summary {
+            margin-top: 30px;
+            padding: 20px;
+            background: #e9ecef;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🚀 Smoke Test</h1>
+        <p>This quick test verifies the app's core functionality is working.</p>
+
+        <button onclick="runSmokeTest()">Run Smoke Test</button>
+
+        <div id="results"></div>
+        <div id="summary"></div>
+    </div>
+
+    <script src="../app.js"></script>
+    <script>
+        async function runSmokeTest() {
+            const resultsDiv = document.getElementById('results');
+            const summaryDiv = document.getElementById('summary');
+            resultsDiv.innerHTML = '';
+            summaryDiv.innerHTML = '';
+
+            const tests = [];
+
+            // Test 1: App loads
+            try {
+                localStorage.clear();
+                const app = new VolunteerTracker();
+                addResult('App initialization', true, 'VolunteerTracker class instantiated');
+                tests.push(true);
+            } catch (e) {
+                addResult('App initialization', false, e.message);
+                tests.push(false);
+            }
+
+            // Test 2: Add entry
+            try {
+                localStorage.clear();
+                const app = new VolunteerTracker();
+                app.entries.push({
+                    id: '1',
+                    date: '2024-01-15',
+                    organization: 'Test Org',
+                    activity: 'Test Activity',
+                    hours: 5,
+                    category: 'Education',
+                    description: 'Test',
+                    createdAt: new Date().toISOString()
+                });
+                app.saveToStorage();
+
+                if (app.entries.length === 1) {
+                    addResult('Add entry', true, 'Entry added successfully');
+                    tests.push(true);
+                } else {
+                    addResult('Add entry', false, 'Entry not added');
+                    tests.push(false);
+                }
+            } catch (e) {
+                addResult('Add entry', false, e.message);
+                tests.push(false);
+            }
+
+            // Test 3: Load from storage
+            try {
+                const app2 = new VolunteerTracker();
+                if (app2.entries.length === 1) {
+                    addResult('Load from storage', true, 'Data persisted correctly');
+                    tests.push(true);
+                } else {
+                    addResult('Load from storage', false, 'Data not loaded');
+                    tests.push(false);
+                }
+            } catch (e) {
+                addResult('Load from storage', false, e.message);
+                tests.push(false);
+            }
+
+            // Test 4: Calculate stats
+            try {
+                const app = new VolunteerTracker();
+                const stats = app.calculateStats();
+                if (stats.totalHours === '5.0' && stats.totalEntries === 1) {
+                    addResult('Calculate statistics', true, 'Stats computed correctly');
+                    tests.push(true);
+                } else {
+                    addResult('Calculate statistics', false, `Stats incorrect: ${stats.totalHours}h, ${stats.totalEntries} entries`);
+                    tests.push(false);
+                }
+            } catch (e) {
+                addResult('Calculate statistics', false, e.message);
+                tests.push(false);
+            }
+
+            // Test 5: Delete entry
+            try {
+                const app = new VolunteerTracker();
+                app.entries = app.entries.filter(e => e.id !== '1');
+                app.saveToStorage();
+                if (app.entries.length === 0) {
+                    addResult('Delete entry', true, 'Entry deleted successfully');
+                    tests.push(true);
+                } else {
+                    addResult('Delete entry', false, 'Entry not deleted');
+                    tests.push(false);
+                }
+            } catch (e) {
+                addResult('Delete entry', false, e.message);
+                tests.push(false);
+            }
+
+            // Test 6: HTML escaping
+            try {
+                const app = new VolunteerTracker();
+                const escaped = app.escapeHtml('<script>alert("xss")</script>');
+                if (escaped.includes('&lt;') && escaped.includes('&gt;')) {
+                    addResult('XSS protection', true, 'HTML properly escaped');
+                    tests.push(true);
+                } else {
+                    addResult('XSS protection', false, 'HTML not escaped');
+                    tests.push(false);
+                }
+            } catch (e) {
+                addResult('XSS protection', false, e.message);
+                tests.push(false);
+            }
+
+            // Summary
+            const passed = tests.filter(t => t).length;
+            const total = tests.length;
+            const allPassed = passed === total;
+
+            summaryDiv.innerHTML = `
+                <div class="summary" style="color: ${allPassed ? '#155724' : '#721c24'}; background: ${allPassed ? '#d4edda' : '#f8d7da'}">
+                    ${allPassed ? '✓' : '✗'} ${passed}/${total} tests passed
+                    ${allPassed ? ' - App is ready to use! 🎉' : ' - Please check failed tests'}
+                </div>
+            `;
+
+            // Clean up
+            localStorage.clear();
+        }
+
+        function addResult(testName, passed, message) {
+            const resultsDiv = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-item ${passed ? 'pass' : 'fail'}`;
+            div.innerHTML = `
+                <span class="icon">${passed ? '✓' : '✗'}</span>
+                <div>
+                    <strong>${testName}</strong>
+                    <div style="font-size: 0.9em; margin-top: 4px;">${message}</div>
+                </div>
+            `;
+            resultsDiv.appendChild(div);
+        }
+    </script>
+</body>
+</html>
