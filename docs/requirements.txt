@@ -1,0 +1,2 @@
+# Requirements for automated screenshot capture
+selenium>=4.15.0
