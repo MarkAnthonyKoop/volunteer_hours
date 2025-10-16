@@ -23,29 +23,33 @@ A production-ready volunteer hours tracking system for organizations and individ
 - ✅ Dashboard with real-time statistics
 - ✅ Search, filter, and sort
 - ✅ Export to JSON
+- ✅ **Advanced reporting with multiple formats** (NEW!)
 - ✅ Mobile-first responsive PWA
 - ✅ Offline-capable
-- ✅ 50+ automated tests passing
+- ✅ 90+ automated tests passing
 - ✅ XSS security protection
 
 **Current Files:**
 ```
 Phase 1 Deliverables:
-├── index.html         (173 lines) Main application UI
-├── app.js             (583 lines) Core logic
-├── styles.css         (643 lines) Responsive styles
-├── manifest.json      (18 lines)  PWA config
-├── start-server.sh    Quick start script
-├── QUICKSTART.md      30-second guide
+├── index.html              (306 lines) Main application UI
+├── app.js                  (797 lines) Core logic + reporting
+├── report-generator.js     (738 lines) Reporting engine
+├── styles.css              (857 lines) Responsive styles
+├── manifest.json           (18 lines)  PWA config
+├── start-server.sh         Quick start script
+├── QUICKSTART.md           30-second guide
 └── tests/
-    ├── test.html          Test runner UI
-    ├── test-runner.js     Custom framework (279 lines)
-    ├── app.test.js        Test suite (625 lines, 50+ tests)
-    ├── smoke-test.html    Quick validation
+    ├── test.html               Test runner UI
+    ├── test-runner.js          Custom framework (279 lines)
+    ├── app.test.js             Test suite (625 lines, 50+ tests)
+    ├── report-generator.test.js Report tests (45+ tests)
+    ├── report-test.html        Report test runner
+    ├── smoke-test.html         Quick validation
     └── manual-verification.md  Testing checklist
 ```
 
-**Stats:** 2,453 lines | 0 dependencies | 90+ Lighthouse score
+**Stats:** 4,000+ lines | 0 dependencies | 90+ Lighthouse score | 90+ tests
 
 ### Phases 2-5: Backend & Advanced Features 🚧 **READY TO BUILD**
 
@@ -122,8 +126,9 @@ vercel --prod
 ```bash
 ./start-server.sh
 # Then open:
-# http://localhost:8080/tests/test.html       (full suite)
-# http://localhost:8080/tests/smoke-test.html (quick check)
+# http://localhost:8080/tests/test.html        (main app tests - 50+ tests)
+# http://localhost:8080/tests/report-test.html (reporting tests - 45+ tests)
+# http://localhost:8080/tests/smoke-test.html  (quick validation)
 ```
 
 ### What You Can Do
@@ -133,6 +138,62 @@ vercel --prod
 3. **Search**: History tab → type keywords, filter, sort
 4. **Edit/Delete**: History tab → click Edit or Delete buttons
 5. **Export**: History tab → Export Data button
+6. **Generate Reports**: Reports tab → filter data → select format → download
+
+---
+
+## 📊 Advanced Reporting Feature
+
+The application now includes a comprehensive reporting system with advanced filtering and multiple export formats.
+
+### Report Features
+
+**Filtering Options:**
+- **Date Ranges**:
+  - All Time
+  - Year to Date
+  - Last X days/weeks/months/years (custom timeframe)
+  - Custom date range (select start and end dates)
+- **Volunteer Filter**: Filter by specific volunteer/person
+- **Organization Filter**: Filter by specific organization
+- **Category Filter**: Filter by volunteer category
+- **Activity Search**: Search within activity names
+- **Hours Range**: Filter by minimum/maximum hours
+
+**Export Formats:**
+- **CSV** - Spreadsheet compatible with Excel, Google Sheets
+- **HTML** - Beautifully styled web page with charts and tables
+- **Markdown** - GitHub/documentation-ready format
+- **Text** - Plain text report for email or printing
+- **JSON** - Structured data for further processing
+
+**Report Contents:**
+Each report includes:
+- Summary statistics (total hours, entries, organizations, average)
+- Complete entry details matching your filters
+- Hours breakdown by organization
+- Hours breakdown by category
+- Date range information
+- Professional formatting
+
+### Using the Reporting Feature
+
+1. Navigate to the **Reports** tab
+2. Select your date range type
+3. Apply additional filters (organization, category, activity)
+4. Click **"Preview Report"** to see matching entries and statistics
+5. Select your preferred export format (CSV, HTML, MD, TXT, JSON)
+6. Click **"Generate & Download Report"**
+
+The report will be automatically downloaded to your device with a timestamped filename.
+
+### Example Use Cases
+
+- **Monthly Reports**: Select "Last 30 days" and export as CSV for spreadsheet analysis
+- **Organization-Specific**: Filter by organization and export as HTML for beautiful presentation
+- **Annual Summary**: Select "Year to Date" and export as PDF-ready HTML
+- **Grant Applications**: Filter by category and date range, export as formatted text
+- **Data Backup**: Export all time as JSON for complete data backup
 
 ---
 
@@ -718,6 +779,8 @@ atom
 ### Developer Documentation
 - **QUICKSTART.md** - 30-second getting started
 - **USER_PROMPT.md** - Master specification
+- **README-REPORTING.md** - ⭐ Advanced reporting system documentation
+- **REPORTS_FEATURE.md** - Reporting feature implementation summary
 - **tests/manual-verification.md** - Testing checklist
 - **api/README.md** - API docs (after Phase 2.1)
 - **database/README.md** - DB schema (after Phase 2.2)
