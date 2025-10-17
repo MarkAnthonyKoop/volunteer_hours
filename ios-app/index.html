@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#4CAF50">
+    <title>Volunteer Hours Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="app-header">
+            <h1>Volunteer Hours</h1>
+            <div class="header-stats">
+                <span id="total-hours">0</span> hours logged
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+            <button class="tab-btn" data-tab="log">Log Hours</button>
+            <button class="tab-btn" data-tab="history">History</button>
+            <button class="tab-btn" data-tab="reports">Reports</button>
+        </nav>
+
+        <!-- Dashboard Tab -->
+        <section id="dashboard-tab" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-hours-stat">0</div>
+                    <div class="stat-label">Total Hours</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-entries-stat">0</div>
+                    <div class="stat-label">Total Entries</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="orgs-count-stat">0</div>
+                    <div class="stat-label">Organizations</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="this-month-stat">0</div>
+                    <div class="stat-label">This Month</div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h2>Hours by Organization</h2>
+                <div id="org-chart" class="chart-container"></div>
+            </div>
+
+            <div class="chart-section">
+                <h2>Recent Activity</h2>
+                <div id="recent-activity" class="activity-list"></div>
+            </div>
+        </section>
+
+        <!-- Log Hours Tab -->
+        <section id="log-tab" class="tab-content">
+            <form id="volunteer-form" class="volunteer-form">
+                <div class="form-group">
+                    <label for="entry-date">Date</label>
+                    <input type="date" id="entry-date" name="date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="volunteer">Volunteer Name (Optional)</label>
+                    <input type="text" id="volunteer" name="volunteer"
+                           placeholder="Me (default)" list="volunteer-suggestions">
+                    <datalist id="volunteer-suggestions"></datalist>
+                </div>
+
+                <div class="form-group">
+                    <label for="organization">Organization</label>
+                    <input type="text" id="organization" name="organization"
+                           placeholder="e.g., Local Food Bank" required
+                           list="org-suggestions">
+                    <datalist id="org-suggestions"></datalist>
+                </div>
+
+                <div class="form-group">
+                    <label for="activity">Activity/Project</label>
+                    <input type="text" id="activity" name="activity"
+                           placeholder="e.g., Food sorting and distribution" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="hours">Hours</label>
+                    <input type="number" id="hours" name="hours"
+                           min="0.25" step="0.25" placeholder="2.5" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Category (Optional)</label>
+                    <select id="category" name="category">
+                        <option value="">Select a category</option>
+                        <option value="Education">Education</option>
+                        <option value="Environment">Environment</option>
+                        <option value="Health">Health</option>
+                        <option value="Social Services">Social Services</option>
+                        <option value="Arts & Culture">Arts & Culture</option>
+                        <option value="Animal Welfare">Animal Welfare</option>
+                        <option value="Community Development">Community Development</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description (Optional)</label>
+                    <textarea id="description" name="description"
+                              rows="3" placeholder="Additional details about your volunteer work..."></textarea>
+                </div>
+
+                <input type="hidden" id="entry-id" name="id">
+
+                <div class="form-actions">
+                    <button type="submit" id="submit-btn" class="btn btn-primary">
+                        Add Entry
+                    </button>
+                    <button type="button" id="cancel-btn" class="btn btn-secondary" style="display: none;">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- History Tab -->
+        <section id="history-tab" class="tab-content">
+            <div class="history-controls">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Search entries...">
+                </div>
+                <div class="filter-controls">
+                    <select id="filter-org" class="filter-select">
+                        <option value="">All Organizations</option>
+                    </select>
+                    <select id="filter-category" class="filter-select">
+                        <option value="">All Categories</option>
+                    </select>
+                    <select id="sort-by" class="filter-select">
+                        <option value="date-desc">Date (Newest)</option>
+                        <option value="date-asc">Date (Oldest)</option>
+                        <option value="hours-desc">Hours (Most)</option>
+                        <option value="hours-asc">Hours (Least)</option>
+                    </select>
+                </div>
+                <div class="action-buttons">
+                    <button id="export-btn" class="btn btn-secondary">Export Data</button>
+                    <button id="clear-all-btn" class="btn btn-danger">Clear All</button>
+                </div>
+            </div>
+
+            <div id="entries-list" class="entries-list">
+                <p class="empty-state">No volunteer entries yet. Start by logging your first volunteer hours!</p>
+            </div>
+        </section>
+
+        <!-- Reports Tab -->
+        <section id="reports-tab" class="tab-content">
+            <div class="report-header">
+                <h2>Generate Report</h2>
+                <p>Create custom reports with advanced filtering options</p>
+            </div>
+
+            <form id="report-form" class="report-form">
+                <!-- Date Range Section -->
+                <div class="report-section">
+                    <h3>Date Range</h3>
+                    <div class="form-group">
+                        <label for="date-range-type">Range Type</label>
+                        <select id="date-range-type" class="form-control">
+                            <option value="all">All Time</option>
+                            <option value="ytd">Year to Date</option>
+                            <option value="last">Last...</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                    </div>
+
+                    <!-- Last X Period Options -->
+                    <div id="last-period-options" class="form-group" style="display: none;">
+                        <label>Last</label>
+                        <div class="inline-fields">
+                            <input type="number" id="last-value" class="form-control" min="1" value="30" style="width: 100px;">
+                            <select id="last-unit" class="form-control" style="width: 150px;">
+                                <option value="days">Days</option>
+                                <option value="weeks">Weeks</option>
+                                <option value="months">Months</option>
+                                <option value="years">Years</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Custom Range Options -->
+                    <div id="custom-range-options" style="display: none;">
+                        <div class="form-group">
+                            <label for="start-date">Start Date</label>
+                            <input type="date" id="start-date" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="end-date">End Date</label>
+                            <input type="date" id="end-date" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters Section -->
+                <div class="report-section">
+                    <h3>Filters</h3>
+                    <div class="form-group">
+                        <label for="report-volunteer-filter">Volunteer</label>
+                        <select id="report-volunteer-filter" class="form-control">
+                            <option value="all">All Volunteers</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="report-org-filter">Organization</label>
+                        <select id="report-org-filter" class="form-control">
+                            <option value="all">All Organizations</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="report-category-filter">Category</label>
+                        <select id="report-category-filter" class="form-control">
+                            <option value="all">All Categories</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="report-activity-filter">Activity (contains)</label>
+                        <input type="text" id="report-activity-filter" class="form-control" placeholder="Filter by activity name...">
+                    </div>
+                </div>
+
+                <!-- Export Format Section -->
+                <div class="report-section">
+                    <h3>Export Format</h3>
+                    <div class="format-options">
+                        <label class="format-option">
+                            <input type="radio" name="format" value="csv" checked>
+                            <span class="format-label">
+                                <strong>CSV</strong>
+                                <small>Spreadsheet compatible</small>
+                            </span>
+                        </label>
+                        <label class="format-option">
+                            <input type="radio" name="format" value="html">
+                            <span class="format-label">
+                                <strong>HTML</strong>
+                                <small>Web page with styling</small>
+                            </span>
+                        </label>
+                        <label class="format-option">
+                            <input type="radio" name="format" value="md">
+                            <span class="format-label">
+                                <strong>Markdown</strong>
+                                <small>Plain text with formatting</small>
+                            </span>
+                        </label>
+                        <label class="format-option">
+                            <input type="radio" name="format" value="txt">
+                            <span class="format-label">
+                                <strong>Text</strong>
+                                <small>Plain text report</small>
+                            </span>
+                        </label>
+                        <label class="format-option">
+                            <input type="radio" name="format" value="json">
+                            <span class="format-label">
+                                <strong>JSON</strong>
+                                <small>Data interchange format</small>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Preview Section -->
+                <div class="report-section">
+                    <h3>Preview</h3>
+                    <div id="report-preview" class="report-preview">
+                        <p class="empty-state">Select filters and click "Preview Report" to see matching entries</p>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="report-actions">
+                    <button type="button" id="preview-report-btn" class="btn btn-secondary">
+                        Preview Report
+                    </button>
+                    <button type="button" id="generate-report-btn" class="btn btn-primary">
+                        Generate & Download Report
+                    </button>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">Confirm Action</h3>
+            <p id="modal-message">Are you sure?</p>
+            <div class="modal-actions">
+                <button id="modal-confirm" class="btn btn-danger">Confirm</button>
+                <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts: Load in correct order for iOS app -->
+
+    <!-- 1. Storage Adapter (platform detection and storage abstraction) -->
+    <script src="storage-adapter.js"></script>
+
+    <!-- 2. Capacitor Features (iOS native features wrapper) -->
+    <script src="capacitor-features.js"></script>
+
+    <!-- 3. Report Generator (needed by both original and iOS app) -->
+    <script src="report-generator.js"></script>
+
+    <!-- 4. Original App (base VolunteerTracker class) -->
+    <script src="app.js"></script>
+
+    <!-- 5. iOS-Enhanced App (extends VolunteerTracker with Capacitor features) -->
+    <!-- This script will auto-detect environment and initialize the appropriate version -->
+    <script src="app-ios-enhanced.js"></script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+workflows:
+  ios-workflow:
+    name: iOS Volunteer Hours Tracker
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.winefred.volunteerhours
+
+      vars:
+        # App configuration
+        APP_NAME: "Volunteer Hours"
+        BUNDLE_ID: "com.winefred.volunteerhours"
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+
+      node: v18.19.0
+      xcode: 15.0
+      cocoapods: default
+
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          cd ios-app
+          npm ci
+
+      - name: Add iOS platform
+        script: |
+          cd ios-app
+          npx cap add ios || echo "iOS platform already exists"
+
+      - name: Sync Capacitor
+        script: |
+          cd ios-app
+          npx cap sync ios
+
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios-app/ios/App
+          pod install
+
+      - name: Set up code signing settings on Xcode project
+        script: |
+          cd ios-app
+          xcode-project use-profiles
+
+      - name: Build ipa for distribution
+        script: |
+          cd ios-app
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - ios-app/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      email:
+        recipients:
+          - markanthonykoop@gmail.com
+        notify:
+          success: true
+          failure: true
+
+      app_store_connect:
+        # For TestFlight (fastest way to get on iPhone)
+        auth: integration
+        submit_to_testflight: true
+
+        # For App Store (production release)
+        # submit_to_app_store: false
