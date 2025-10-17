@@ -72,3 +72,60 @@ workflows:
 
         # For App Store (production release)
         # submit_to_app_store: false
+
+  android-workflow:
+    name: Android Volunteer Hours Tracker
+    max_build_duration: 120
+    instance_type: linux_x2
+
+    environment:
+      vars:
+        # App configuration
+        PACKAGE_NAME: "com.winefred.volunteerhours"
+
+      android_signing:
+        - volunteer_hours_keystore
+
+      node: v18.19.0
+      java: 17
+
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          cd ios-app
+          npm ci
+
+      - name: Add Android platform
+        script: |
+          cd ios-app
+          npx cap add android || echo "Android platform already exists"
+
+      - name: Sync Capacitor
+        script: |
+          cd ios-app
+          npx cap sync android
+
+      - name: Set Android version
+        script: |
+          cd ios-app/android
+          VERSION_NAME=1.0.0
+          VERSION_CODE=$BUILD_NUMBER
+          sed -i "s/versionCode .*/versionCode $VERSION_CODE/" app/build.gradle
+          sed -i "s/versionName .*/versionName \"$VERSION_NAME\"/" app/build.gradle
+
+      - name: Build Android APK
+        script: |
+          cd ios-app/android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+    artifacts:
+      - ios-app/android/app/build/outputs/**/*.apk
+
+    publishing:
+      email:
+        recipients:
+          - markanthonykoop@gmail.com
+        notify:
+          success: true
+          failure: true
